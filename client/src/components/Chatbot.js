@@ -25,7 +25,7 @@ const Chatbot = () => {
             setInput('');
 
             try {
-                const response = await axios.post('http://localhost:5001/api/chat', { user_id: 'user_id', question: input });
+                const response = await axios.post('http://prototype.ddns.net:5001/api/chat', { user_id: 'user_id', question: input });
                 setMessages([...newMessages, { sender: 'bot', text: response.data.response }]);
             } catch (error) {
                 console.error('Error when sending message:', error);
@@ -35,7 +35,7 @@ const Chatbot = () => {
     };
 
     useEffect(() => {
-        axios.get('http://localhost:5001/api/services')
+        axios.get('http://prototype.ddns.net:5001/api/services')
             .then(response => {
                 setServices(response.data);
             })
@@ -43,7 +43,7 @@ const Chatbot = () => {
                 console.error('Error fetching services:', error);
             });
     }, []);
-    
+
     const handleTicketChange = (e) => {
         const { name, value } = e.target;
         setTicket(prev => ({ ...prev, [name]: value }));
@@ -51,7 +51,7 @@ const Chatbot = () => {
 
     const submitTicket = async () => {
         try {
-            const response = await axios.post('http://localhost:5001/api/tickets', ticket);
+            await axios.post('http://prototype.ddns.net:5001/api/tickets', ticket);
             setBannerMessage('Ticket submitted successfully!');
             setBannerSuccess(true);
             setTicketFormOpen(false);
@@ -85,24 +85,23 @@ const Chatbot = () => {
                             <FormControl fullWidth margin="dense">
                                 <InputLabel id="service-label">Service</InputLabel>
                                 <Select
-                                labelId="service-label"
-                                id="service-select"
-                                name="service_id"
-                                value={ticket.service_id}
-                                label="Service"
-                                onChange={handleTicketChange}
-                            >
-                                {services.length > 0 ? (
-                                    services.map(service => (
-                                        <MenuItem key={service.service_id} value={service.service_id}>
-                                            {service.service_name}
-                                        </MenuItem>
-                                    ))
-                                ) : (
-                                    <MenuItem disabled>No Services Found</MenuItem>
-                                )}
-                            </Select>
-
+                                    labelId="service-label"
+                                    id="service-select"
+                                    name="service_id"
+                                    value={ticket.service_id}
+                                    label="Service"
+                                    onChange={handleTicketChange}
+                                >
+                                    {services.length > 0 ? (
+                                        services.map(service => (
+                                            <MenuItem key={service.service_id} value={service.service_id}>
+                                                {service.service_name}
+                                            </MenuItem>
+                                        ))
+                                    ) : (
+                                        <MenuItem disabled>No Services Found</MenuItem>
+                                    )}
+                                </Select>
                             </FormControl>
                             <TextField label="Description" name="description" fullWidth margin="dense" multiline maxRows={4} value={ticket.description} onChange={handleTicketChange} />
                             <FormControl fullWidth margin="dense">
