@@ -3,13 +3,28 @@ from flask_cors import CORS
 import mysql.connector
 from mysql.connector import Error
 from servicebot import GPTCustomerService
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import ssl
+import configparser
 
 app = Flask(__name__)
 CORS(app)
 db = None
 
+# Load configuration
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 465  # For SSL
+EMAIL_USER = config['email']['EMAIL_USER']
+EMAIL_PASS = config['email']['EMAIL_PASS']
+
 service_bot = GPTCustomerService('config.ini')
 
+print("Attempting Database Connection")
 # Database connection setup
 try:
     db = mysql.connector.connect(
@@ -22,6 +37,23 @@ try:
     print("Connected to MySQL database")
 except Error as e:
     print(f"Error connecting to MySQL database: {e}")
+
+def send_email(subject, body, to):
+    msg = MIMEMultipart()
+    msg['From'] = EMAIL_USER
+    msg['To'] = to
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(EMAIL_HOST, EMAIL_PORT, context=context) as server:
+            server.login(EMAIL_USER, EMAIL_PASS)
+            server.sendmail(EMAIL_USER, to, msg.as_string())
+        print("Email sent successfully")
+    except Exception as e:
+        print(f"Failed to send email: {str(e)}")
 
 @app.route('/api/services', methods=['GET'])
 def get_services():
@@ -71,6 +103,15 @@ def submit_ticket():
             (service_id, description, severity)
         )
         db.commit()
+
+        cursor.execute("SELECT service_name FROM services WHERE service_id = %s", (service_id,))
+        service_name = cursor.fetchone()[0]
+
+        # Send email notification
+        subject = "New Ticket Submitted"
+        body = f"A new ticket has been submitted.\n\nService: {service_name}\nService ID: {service_id}\nDescription: {description}\nSeverity: {severity}"
+        send_email(subject, body, 'maticapa6@gmail.com')
+        
         return jsonify({"message": "Ticket submitted successfully"}), 201
     except Exception as e:
         print(f"Error processing ticket submission: {str(e)}")
